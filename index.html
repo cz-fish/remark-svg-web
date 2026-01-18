@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Color Replacer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2em;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+        }
+
+        .drop-zone {
+            border: 3px dashed #667eea;
+            border-radius: 8px;
+            padding: 60px 20px;
+            text-align: center;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .drop-zone:hover {
+            background: #e8ebff;
+            border-color: #764ba2;
+        }
+
+        .drop-zone.drag-over {
+            background: #dde2ff;
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+
+        .drop-zone p {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        .drop-zone input[type="file"] {
+            display: none;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .preview-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .preview-section.active {
+            display: block;
+        }
+
+        .controls {
+            display: none; /* TODO: remove altogether */
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #333;
+            min-width: 120px;
+        }
+
+        .control-group input[type="color"] {
+            width: 60px;
+            height: 40px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .control-group input[type="text"] {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 1em;
+            width: 120px;
+        }
+
+        .preview-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .preview-box {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            background: #fafafa;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-box h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .svg-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border-radius: 4px;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        .svg-container svg {
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        .download-section {
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .preview-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SVG Color Replacer</h1>
+        
+        <div class="upload-section">
+            <div class="drop-zone" id="dropZone">
+                <p>Drag and drop an SVG file here</p>
+                <p style="color: #999;">or</p>
+                <button class="btn" onclick="document.getElementById('fileInput').click()">Browse Files</button>
+                <input type="file" id="fileInput" accept=".svg,image/svg+xml">
+            </div>
+        </div>
+
+        <div class="preview-section" id="previewSection">
+            <div class="controls">
+                <h3 style="margin-bottom: 15px;">Color Replacement</h3>
+                <div class="control-group">
+                    <label for="fromColor">Replace Color:</label>
+                    <input type="color" id="fromColor" value="#000000">
+                    <input type="text" id="fromColorText" value="#000000" placeholder="#000000">
+                </div>
+                <div class="control-group">
+                    <label for="toColor">With Color:</label>
+                    <input type="color" id="toColor" value="#ff0000">
+                    <input type="text" id="toColorText" value="#ff0000" placeholder="#ff0000">
+                </div>
+                <button class="btn" id="applyBtn" onclick="applyColorReplacement()">Apply Replacement</button>
+            </div>
+
+            <div class="preview-container">
+                <div class="preview-box">
+                    <h3>Original SVG</h3>
+                    <div class="svg-container" id="originalSvg"></div>
+                </div>
+                <div class="preview-box">
+                    <h3>Modified SVG</h3>
+                    <div class="svg-container" id="modifiedSvg"></div>
+                </div>
+            </div>
+
+            <div class="download-section">
+                <button class="btn" id="downloadBtn" onclick="downloadSvg()">Download Modified SVG</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let originalSvgContent = '';
+        let modifiedSvgContent = '';
+
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const previewSection = document.getElementById('previewSection');
+        const originalSvgContainer = document.getElementById('originalSvg');
+        const modifiedSvgContainer = document.getElementById('modifiedSvg');
+
+        // Color picker sync
+        const fromColor = document.getElementById('fromColor');
+        const fromColorText = document.getElementById('fromColorText');
+        const toColor = document.getElementById('toColor');
+        const toColorText = document.getElementById('toColorText');
+
+        fromColor.addEventListener('input', (e) => {
+            fromColorText.value = e.target.value;
+        });
+
+        fromColorText.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                fromColor.value = e.target.value;
+            }
+        });
+
+        toColor.addEventListener('input', (e) => {
+            toColorText.value = e.target.value;
+        });
+
+        toColorText.addEventListener('input', (e) => {
+            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                toColor.value = e.target.value;
+            }
+        });
+
+        // Drag and drop handlers
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (file.type !== 'image/svg+xml' && !file.name.endsWith('.svg')) {
+                alert('Please select a valid SVG file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                originalSvgContent = e.target.result;
+                modifiedSvgContent = originalSvgContent;
+                displaySvg();
+                previewSection.classList.add('active');
+            };
+            reader.readAsText(file);
+        }
+
+        function displaySvg() {
+            originalSvgContainer.innerHTML = originalSvgContent;
+            modifiedSvgContainer.innerHTML = modifiedSvgContent;
+        }
+
+        function applyColorReplacement() {
+            const fromColorValue = fromColorText.value.toLowerCase();
+            const toColorValue = toColorText.value.toLowerCase();
+
+            // Replace color in the SVG content
+            // This will replace all occurrences of the color in various formats
+            modifiedSvgContent = originalSvgContent;
+            
+            // Replace hex color (case insensitive)
+            const hexRegex = new RegExp(fromColorValue, 'gi');
+            modifiedSvgContent = modifiedSvgContent.replace(hexRegex, toColorValue);
+
+            // Also try to replace short hex format if applicable
+            if (fromColorValue.length === 7) {
+                const shortHex = fromColorValue.replace(/^#([0-9a-f])\1([0-9a-f])\2([0-9a-f])\3$/i, '#$1$2$3');
+                if (shortHex !== fromColorValue) {
+                    const shortHexRegex = new RegExp(shortHex, 'gi');
+                    modifiedSvgContent = modifiedSvgContent.replace(shortHexRegex, toColorValue);
+                }
+            }
+
+            displaySvg();
+        }
+
+        function downloadSvg() {
+            const blob = new Blob([modifiedSvgContent], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'modified.svg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
