@@ -99,43 +99,6 @@
             display: block;
         }
 
-        .controls {
-            display: none; /* TODO: remove altogether */
-            margin-bottom: 20px;
-            padding: 20px;
-            background: #f5f5f5;
-            border-radius: 8px;
-        }
-
-        .control-group {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .control-group label {
-            font-weight: 600;
-            color: #333;
-            min-width: 120px;
-        }
-
-        .control-group input[type="color"] {
-            width: 60px;
-            height: 40px;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .control-group input[type="text"] {
-            padding: 8px 12px;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-            font-size: 1em;
-            width: 120px;
-        }
-
         .preview-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -200,21 +163,6 @@
         </div>
 
         <div class="preview-section" id="previewSection">
-            <div class="controls">
-                <h3 style="margin-bottom: 15px;">Color Replacement</h3>
-                <div class="control-group">
-                    <label for="fromColor">Replace Color:</label>
-                    <input type="color" id="fromColor" value="#000000">
-                    <input type="text" id="fromColorText" value="#000000" placeholder="#000000">
-                </div>
-                <div class="control-group">
-                    <label for="toColor">With Color:</label>
-                    <input type="color" id="toColor" value="#ff0000">
-                    <input type="text" id="toColorText" value="#ff0000" placeholder="#ff0000">
-                </div>
-                <button class="btn" id="applyBtn" onclick="applyColorReplacement()">Apply Replacement</button>
-            </div>
-
             <div class="preview-container">
                 <div class="preview-box">
                     <h3>Original SVG</h3>
@@ -241,32 +189,6 @@
         const previewSection = document.getElementById('previewSection');
         const originalSvgContainer = document.getElementById('originalSvg');
         const modifiedSvgContainer = document.getElementById('modifiedSvg');
-
-        // Color picker sync
-        const fromColor = document.getElementById('fromColor');
-        const fromColorText = document.getElementById('fromColorText');
-        const toColor = document.getElementById('toColor');
-        const toColorText = document.getElementById('toColorText');
-
-        fromColor.addEventListener('input', (e) => {
-            fromColorText.value = e.target.value;
-        });
-
-        fromColorText.addEventListener('input', (e) => {
-            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
-                fromColor.value = e.target.value;
-            }
-        });
-
-        toColor.addEventListener('input', (e) => {
-            toColorText.value = e.target.value;
-        });
-
-        toColorText.addEventListener('input', (e) => {
-            if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
-                toColor.value = e.target.value;
-            }
-        });
 
         // Drag and drop handlers
         dropZone.addEventListener('dragover', (e) => {
@@ -316,6 +238,7 @@
         }
 
         function applyColorReplacement() {
+/*
             const fromColorValue = fromColorText.value.toLowerCase();
             const toColorValue = toColorText.value.toLowerCase();
 
@@ -335,7 +258,7 @@
                     modifiedSvgContent = modifiedSvgContent.replace(shortHexRegex, toColorValue);
                 }
             }
-
+*/
             displaySvg();
         }
 
