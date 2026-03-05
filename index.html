@@ -488,6 +488,12 @@
                     const serializer = new XMLSerializer();
                     originalSvgContent = serializer.serializeToString(svgDoc);
                 }
+                // Strip opacity attributes from paths on load
+                originalSvgContent = originalSvgContent.replace(/<path([^>]*)>/gi, (match, attrs) => {
+                    attrs = attrs.replace(/\s+opacity\s*=\s*["'][^"']*["']/gi, '');
+                    attrs = attrs.replace(/\bopacity\s*:[^;}"']+[;]?/gi, '');
+                    return `<path${attrs}>`;
+                });
                 modifiedSvgContent = originalSvgContent;
                 colorMap = {};
                 extractColors();
@@ -499,49 +505,89 @@
             reader.readAsText(file);
         }
 
-        // ── Color extraction ──
+        // ── Color extraction + area-based sorting ──
         function extractColors() {
             const parser = new DOMParser();
             const svgDoc = parser.parseFromString(originalSvgContent, 'image/svg+xml');
-            const colorSet = new Set();
 
             const colorAttrs = ['fill', 'stroke', 'stop-color', 'color', 'flood-color', 'lighting-color'];
-            const allEls = svgDoc.querySelectorAll('*');
 
-            allEls.forEach(el => {
-                // Attributes
-                colorAttrs.forEach(attr => {
-                    const val = el.getAttribute(attr);
-                    if (val) addColorToSet(val, colorSet);
-                });
-                // Inline style
-                const style = el.getAttribute('style');
-                if (style) {
-                    colorAttrs.forEach(attr => {
-                        const regex = new RegExp(attr + '\\s*:\\s*([^;]+)', 'i');
-                        const m = style.match(regex);
-                        if (m) addColorToSet(m[1].trim(), colorSet);
-                    });
+            // Render into a hidden container so getBBox() works
+            const hiddenHost = document.createElement('div');
+            hiddenHost.style.cssText = 'position:absolute;visibility:hidden;width:0;height:0;overflow:hidden;';
+            document.body.appendChild(hiddenHost);
+            hiddenHost.innerHTML = originalSvgContent;
+            const liveSvg = hiddenHost.querySelector('svg');
+
+            // colorArea: normalised color → total bounding-box area
+            const colorArea = {};
+
+            function getElColor(el) {
+                // Check inline style first, then attribute
+                for (const attr of colorAttrs) {
+                    let val = null;
+                    const style = el.getAttribute('style');
+                    if (style) {
+                        const m = style.match(new RegExp(attr + '\\s*:\\s*([^;]+)', 'i'));
+                        if (m) val = m[1].trim();
+                    }
+                    if (!val) val = el.getAttribute(attr);
+                    if (val) {
+                        val = normalizeColor(val);
+                        if (val) return val;
+                    }
                 }
+                return null;
+            }
+
+            function getBBoxArea(liveEl) {
+                try {
+                    if (typeof liveEl.getBBox === 'function') {
+                        const b = liveEl.getBBox();
+                        return b.width * b.height;
+                    }
+                } catch(e) {}
+                return 0;
+            }
+
+            // Walk parsed SVG elements; pair with live equivalents by index
+            const parsedEls = Array.from(svgDoc.querySelectorAll('*'));
+            const liveEls   = liveSvg ? Array.from(liveSvg.querySelectorAll('*')) : [];
+
+            parsedEls.forEach((el, i) => {
+                const color = getElColor(el);
+                if (!color) return;
+                const area = getBBoxArea(liveEls[i]);
+                colorArea[color] = (colorArea[color] || 0) + area;
             });
 
-            // Also scan raw text for hex colors not caught by attributes
-            const hexMatches = originalSvgContent.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
-            hexMatches.forEach(h => addColorToSet(h, colorSet));
+            // Clean up hidden host
+            document.body.removeChild(hiddenHost);
 
-            originalColors = [...colorSet].filter(c => c !== 'none' && c !== 'transparent' && c !== 'inherit' && c !== 'currentColor');
+            // Also pick up any hex colors in raw text that weren't on renderable elements
+            const hexMatches = originalSvgContent.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
+            hexMatches.forEach(h => {
+                const n = normalizeColor(h);
+                if (n && !(n in colorArea)) colorArea[n] = 0;
+            });
+
+            // Filter out keywords we don't want
+            const ignore = new Set(['none','transparent','inherit','currentcolor']);
+            originalColors = Object.keys(colorArea)
+                .filter(c => !ignore.has(c))
+                .sort((a, b) => colorArea[b] - colorArea[a]);
+
             // Initialize colorMap with identity
             originalColors.forEach(c => { if (!colorMap[c]) colorMap[c] = c; });
             renderSwatches();
         }
 
-        function addColorToSet(val, set) {
+        function normalizeColor(val) {
             val = val.trim().toLowerCase();
-            if (!val || val === 'none' || val === 'transparent' || val === 'inherit' || val === 'currentcolor') return;
-            // Normalize shorthand hex
+            if (!val || val === 'none' || val === 'transparent' || val === 'inherit' || val === 'currentcolor') return null;
             const short = val.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i);
             if (short) val = `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`;
-            set.add(val);
+            return val;
         }
 
         // ── Palette toggle ──
@@ -648,12 +694,18 @@
         // ── Rebuild modified SVG by applying all colorMap entries to original ──
         function rebuildModifiedSvg() {
             let result = originalSvgContent;
+            // Remove opacity attributes from all path elements
+            result = result.replace(/<path([^>]*)>/gi, (match, attrs) => {
+                attrs = attrs.replace(/\s+opacity\s*=\s*["'][^"']*["']/gi, '');
+                attrs = attrs.replace(/\bopacity\s*:[^;}"']+[;]?/gi, '');
+                return `<path${attrs}>`;
+            });
+
             // Sort by length descending to avoid partial replacements
             const sortedColors = [...originalColors].sort((a, b) => b.length - a.length);
             sortedColors.forEach(orig => {
                 const replacement = colorMap[orig] || orig;
                 if (replacement === orig) return;
-                // Escape for regex
                 const escaped = orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const regex = new RegExp(escaped, 'gi');
                 result = result.replace(regex, replacement);
@@ -665,6 +717,7 @@
                     result = result.replace(new RegExp(escapedShort, 'gi'), replacement);
                 }
             });
+
             modifiedSvgContent = result;
         }
 
