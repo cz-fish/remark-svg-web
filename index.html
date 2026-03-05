@@ -448,8 +448,10 @@
         let modifiedSvgContent = '';
         // Map from original color (normalized hex) → current replacement color
         let colorMap = {};
-        // All distinct original colors found at load time
+        // All distinct original colors found at load time (one per group)
         let originalColors = [];
+        // Map from rep color → [all member colors in its similarity group]
+        let colorGroupMembers = {};
 
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
@@ -496,6 +498,7 @@
                 });
                 modifiedSvgContent = originalSvgContent;
                 colorMap = {};
+                colorGroupMembers = {};
                 extractColors();
                 displaySvg();
                 previewSection.classList.add('active');
@@ -573,12 +576,85 @@
 
             // Filter out keywords we don't want
             const ignore = new Set(['none','transparent','inherit','currentcolor']);
-            originalColors = Object.keys(colorArea)
-                .filter(c => !ignore.has(c))
-                .sort((a, b) => colorArea[b] - colorArea[a]);
+            const allColors = Object.keys(colorArea).filter(c => !ignore.has(c));
 
-            // Initialize colorMap with identity
-            originalColors.forEach(c => { if (!colorMap[c]) colorMap[c] = c; });
+            // ── CIE76 grouping ──
+            // Group colors whose Lab-space Euclidean distance (ΔE) is < DELTA_E_THRESHOLD.
+            // Each group is represented by its most area-dominant member.
+            // The colorMap for every non-representative member is pre-seeded to point at
+            // the representative, so all similar colors get collapsed in the output SVG.
+            const DELTA_E_THRESHOLD = 10;
+
+            function hexToRgb(hex) {
+                // Handles #rrggbb; normalizeColor already expanded short forms
+                const m = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+                if (!m) return null;
+                return [parseInt(m[1],16), parseInt(m[2],16), parseInt(m[3],16)];
+            }
+
+            function rgbToLab(r, g, b) {
+                // sRGB → linear → XYZ (D65) → Lab
+                let [R, G, B] = [r, g, b].map(v => {
+                    v /= 255;
+                    return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+                });
+                const X = (R * 0.4124564 + G * 0.3575761 + B * 0.1804375) / 0.95047;
+                const Y = (R * 0.2126729 + G * 0.7151522 + B * 0.0721750) / 1.00000;
+                const Z = (R * 0.0193339 + G * 0.1191920 + B * 0.9503041) / 1.08883;
+                const f = t => t > 0.008856 ? Math.cbrt(t) : (7.787 * t) + 16/116;
+                const L = 116 * f(Y) - 16;
+                const a = 500 * (f(X) - f(Y));
+                const bv = 200 * (f(Y) - f(Z));
+                return [L, a, bv];
+            }
+
+            function deltaE(c1, c2) {
+                const rgb1 = hexToRgb(c1), rgb2 = hexToRgb(c2);
+                if (!rgb1 || !rgb2) return Infinity;
+                const [L1,a1,b1] = rgbToLab(...rgb1);
+                const [L2,a2,b2] = rgbToLab(...rgb2);
+                return Math.sqrt((L1-L2)**2 + (a1-a2)**2 + (b1-b2)**2);
+            }
+
+            // Sort all colors by area descending so the most dominant becomes the group rep
+            const sorted = [...allColors].sort((a, b) => (colorArea[b]||0) - (colorArea[a]||0));
+
+            // colorGroups: rep color → [member colors] (including rep itself)
+            const colorGroups = {};   // rep → [members]
+            const memberOf   = {};    // color → rep
+
+            sorted.forEach(color => {
+                if (memberOf[color]) return; // already assigned
+                // Try to find an existing group whose rep is similar enough
+                const rep = Object.keys(colorGroups).find(r => deltaE(color, r) < DELTA_E_THRESHOLD);
+                if (rep) {
+                    colorGroups[rep].push(color);
+                    memberOf[color] = rep;
+                } else {
+                    colorGroups[color] = [color];
+                    memberOf[color] = color;
+                }
+            });
+
+            // originalColors = representative colors, sorted by total group area
+            originalColors = Object.keys(colorGroups).sort((a, b) => {
+                const areaOf = rep => colorGroups[rep].reduce((s, c) => s + (colorArea[c]||0), 0);
+                return areaOf(b) - areaOf(a);
+            });
+
+            // Store group info for tooltip use
+            colorGroupMembers = colorGroups;
+
+            // Initialize colorMap:
+            // - reps map to themselves (identity, unless already set)
+            // - non-rep members are pre-seeded to their rep so they get collapsed
+            originalColors.forEach(rep => {
+                if (!colorMap[rep]) colorMap[rep] = rep;
+                colorGroups[rep].forEach(member => {
+                    if (member !== rep) colorMap[member] = rep;
+                });
+            });
+
             renderSwatches();
         }
 
@@ -612,7 +688,11 @@
                 const currentColor = colorMap[origColor] || origColor;
                 const item = document.createElement('div');
                 item.className = 'swatch-item';
-                item.title = `Original: ${origColor}\nCurrent: ${currentColor}\nClick to change`;
+                const members = colorGroupMembers[origColor] || [origColor];
+                const groupNote = members.length > 1
+                    ? `\nGroups ${members.length} similar colors:\n  ${members.join('\n  ')}`
+                    : '';
+                item.title = `Representative: ${origColor}\nCurrent: ${currentColor}${groupNote}\nClick to change`;
 
                 const box = document.createElement('div');
                 box.className = 'swatch-box';
@@ -624,6 +704,14 @@
                 editIcon.className = 'swatch-edit-icon';
                 editIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
                 box.appendChild(editIcon);
+
+                // Group count badge (shown when swatch represents multiple similar colors)
+                if (members.length > 1) {
+                    const badge = document.createElement('div');
+                    badge.style.cssText = 'position:absolute;top:2px;left:3px;background:rgba(0,0,0,0.55);color:white;font-size:9px;font-weight:700;border-radius:3px;padding:1px 3px;line-height:1.4;pointer-events:none;';
+                    badge.textContent = `×${members.length}`;
+                    box.appendChild(badge);
+                }
 
                 // Hidden color input
                 const input = document.createElement('input');
@@ -677,6 +765,9 @@
         // ── Apply color change ──
         function applyColorChange(origColor, newColor) {
             colorMap[origColor] = newColor;
+            // Also remap all group members to the new color
+            const members = colorGroupMembers[origColor] || [];
+            members.forEach(m => { colorMap[m] = newColor; });
             rebuildModifiedSvg();
             renderSwatches();
             renderChangeLog();
@@ -684,7 +775,11 @@
         }
 
         function resetAllColors() {
-            originalColors.forEach(c => { colorMap[c] = c; });
+            // Reps reset to themselves; members reset to their rep
+            originalColors.forEach(rep => {
+                colorMap[rep] = rep;
+                (colorGroupMembers[rep] || []).forEach(m => { colorMap[m] = rep; });
+            });
             modifiedSvgContent = originalSvgContent;
             renderSwatches();
             renderChangeLog();
@@ -701,11 +796,12 @@
                 return `<path${attrs}>`;
             });
 
-            // Sort by length descending to avoid partial replacements
-            const sortedColors = [...originalColors].sort((a, b) => b.length - a.length);
+            // Sort by length descending to avoid partial replacements.
+            // Iterate over ALL colorMap entries (includes non-rep group members).
+            const sortedColors = Object.keys(colorMap).sort((a, b) => b.length - a.length);
             sortedColors.forEach(orig => {
-                const replacement = colorMap[orig] || orig;
-                if (replacement === orig) return;
+                const replacement = colorMap[orig];
+                if (!replacement || replacement === orig) return;
                 const escaped = orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const regex = new RegExp(escaped, 'gi');
                 result = result.replace(regex, replacement);
