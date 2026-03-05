@@ -583,7 +583,7 @@
             // Each group is represented by its most area-dominant member.
             // The colorMap for every non-representative member is pre-seeded to point at
             // the representative, so all similar colors get collapsed in the output SVG.
-            const DELTA_E_THRESHOLD = 40;
+            const DELTA_E_THRESHOLD = 30;
             const NEVER_GROUP = new Set(['#000000']);
 
             function hexToRgb(hex) {
