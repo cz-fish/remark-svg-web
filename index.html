@@ -583,7 +583,8 @@
             // Each group is represented by its most area-dominant member.
             // The colorMap for every non-representative member is pre-seeded to point at
             // the representative, so all similar colors get collapsed in the output SVG.
-            const DELTA_E_THRESHOLD = 10;
+            const DELTA_E_THRESHOLD = 40;
+            const NEVER_GROUP = new Set(['#000000']);
 
             function hexToRgb(hex) {
                 // Handles #rrggbb; normalizeColor already expanded short forms
@@ -625,8 +626,14 @@
 
             sorted.forEach(color => {
                 if (memberOf[color]) return; // already assigned
-                // Try to find an existing group whose rep is similar enough
-                const rep = Object.keys(colorGroups).find(r => deltaE(color, r) < DELTA_E_THRESHOLD);
+                // Colors in NEVER_GROUP always get their own group
+                if (NEVER_GROUP.has(color)) {
+                    colorGroups[color] = [color];
+                    memberOf[color] = color;
+                    return;
+                }
+                // Try to find an existing group whose rep is similar enough (and not a never-group rep)
+                const rep = Object.keys(colorGroups).find(r => !NEVER_GROUP.has(r) && deltaE(color, r) < DELTA_E_THRESHOLD);
                 if (rep) {
                     colorGroups[rep].push(color);
                     memberOf[color] = rep;
