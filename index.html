@@ -99,20 +99,242 @@
             display: block;
         }
 
-        .controls {
-            margin-bottom: 20px;
-            padding: 20px;
-            background: #f5f5f5;
-            border-radius: 8px;
+        /* ── Collapsible Color Palette Panel ── */
+        .palette-panel {
+            margin-bottom: 24px;
+            border: 2px solid #e0e0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.08);
         }
 
-        .control-group {
+        .palette-header {
             display: flex;
-            gap: 15px;
             align-items: center;
-            margin-bottom: 15px;
+            justify-content: space-between;
+            padding: 14px 20px;
+            background: linear-gradient(90deg, #f0f2ff 0%, #f8f0ff 100%);
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
         }
 
+        .palette-header:hover {
+            background: linear-gradient(90deg, #e4e8ff 0%, #f0e6ff 100%);
+        }
+
+        .palette-header-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .palette-header h3 {
+            font-size: 1.05em;
+            color: #444;
+            font-weight: 600;
+        }
+
+        .color-count-badge {
+            background: #667eea;
+            color: white;
+            font-size: 0.75em;
+            font-weight: 700;
+            border-radius: 12px;
+            padding: 2px 8px;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .palette-chevron {
+            width: 20px;
+            height: 20px;
+            color: #667eea;
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .palette-chevron.open {
+            transform: rotate(180deg);
+        }
+
+        .palette-body {
+            display: none;
+            padding: 20px;
+            background: #fafbff;
+            border-top: 1px solid #e0e0f0;
+        }
+
+        .palette-body.open {
+            display: block;
+        }
+
+        .palette-hint {
+            font-size: 0.85em;
+            color: #888;
+            margin-bottom: 16px;
+        }
+
+        .color-swatches {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .swatch-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .swatch-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            border: 2px solid rgba(0,0,0,0.12);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Checkerboard for transparent/none colors */
+        .swatch-box.transparent-bg {
+            background-image:
+                linear-gradient(45deg, #ccc 25%, transparent 25%),
+                linear-gradient(-45deg, #ccc 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #ccc 75%),
+                linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 8px 8px;
+            background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+        }
+
+        .swatch-item:hover .swatch-box {
+            transform: scale(1.12);
+            box-shadow: 0 4px 12px rgba(102,126,234,0.3);
+            border-color: #667eea;
+        }
+
+        .swatch-label {
+            font-size: 0.65em;
+            color: #666;
+            font-family: 'Courier New', monospace;
+            max-width: 52px;
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Hidden real color input */
+        .swatch-input {
+            position: absolute;
+            width: 0;
+            height: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Pencil icon overlay */
+        .swatch-edit-icon {
+            position: absolute;
+            bottom: 3px;
+            right: 3px;
+            width: 14px;
+            height: 14px;
+            background: rgba(255,255,255,0.85);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .swatch-item:hover .swatch-edit-icon {
+            opacity: 1;
+        }
+
+        .swatch-edit-icon svg {
+            width: 9px;
+            height: 9px;
+            color: #555;
+        }
+
+        /* Change log */
+        .change-log {
+            margin-top: 18px;
+            padding: 12px 16px;
+            background: #f0f4ff;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .change-log.has-changes {
+            display: block;
+        }
+
+        .change-log h4 {
+            font-size: 0.85em;
+            color: #555;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .change-log-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .change-entry {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: white;
+            border-radius: 20px;
+            padding: 4px 10px 4px 6px;
+            font-size: 0.78em;
+            color: #444;
+            border: 1px solid #dde;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+
+        .change-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            border: 1px solid rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+
+        .change-arrow {
+            color: #999;
+            font-size: 0.9em;
+        }
+
+        .reset-btn {
+            margin-top: 14px;
+            background: none;
+            border: 1.5px solid #ccc;
+            color: #666;
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .reset-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+            background: #f0f2ff;
+        }
+
+        /* ── Preview layout ── */
         .preview-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -157,16 +379,14 @@
         }
 
         @media (max-width: 768px) {
-            .preview-container {
-                grid-template-columns: 1fr;
-            }
+            .preview-container { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>SVG Color Replacer</h1>
-        
+
         <div class="upload-section">
             <div class="drop-zone" id="dropZone">
                 <p>Drag and drop an SVG file here</p>
@@ -177,6 +397,35 @@
         </div>
 
         <div class="preview-section" id="previewSection">
+
+            <!-- ── Color Palette Panel ── -->
+            <div class="palette-panel" id="palettePanel">
+                <div class="palette-header" id="paletteHeader" onclick="togglePalette()">
+                    <div class="palette-header-left">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="10.5" r="2.5"/>
+                            <circle cx="8.5" cy="7.5" r="2.5"/><circle cx="6.5" cy="12.5" r="2.5"/>
+                            <path d="M12 20c4.24 0 8-3.22 8-7.16C20 8.61 16.42 5 12 5S4 8.61 4 12.84C4 16.78 7.76 20 12 20z"/>
+                        </svg>
+                        <h3>Color Palette</h3>
+                        <span class="color-count-badge" id="colorCountBadge">0</span>
+                    </div>
+                    <svg class="palette-chevron" id="paletteChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </div>
+                <div class="palette-body" id="paletteBody">
+                    <p class="palette-hint">Click any color swatch to pick a new color. All matching elements in the output SVG will update instantly.</p>
+                    <div class="color-swatches" id="colorSwatches"></div>
+                    <div class="change-log" id="changeLog">
+                        <h4>Applied changes</h4>
+                        <div class="change-log-list" id="changeLogList"></div>
+                        <button class="reset-btn" onclick="resetAllColors()">↺ Reset all colors</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── SVG Preview ── -->
             <div class="preview-container">
                 <div class="preview-box">
                     <h3>Original SVG</h3>
@@ -197,6 +446,10 @@
     <script>
         let originalSvgContent = '';
         let modifiedSvgContent = '';
+        // Map from original color (normalized hex) → current replacement color
+        let colorMap = {};
+        // All distinct original colors found at load time
+        let originalColors = [];
 
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
@@ -204,97 +457,253 @@
         const originalSvgContainer = document.getElementById('originalSvg');
         const modifiedSvgContainer = document.getElementById('modifiedSvg');
 
-        // Drag and drop handlers
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('drag-over');
-        });
-
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('drag-over');
-        });
-
+        // ── Drag & drop ──
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
             dropZone.classList.remove('drag-over');
-            
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFile(files[0]);
-            }
+            if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
         });
-
         fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFile(e.target.files[0]);
-            }
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
         });
 
+        // ── File handling ──
         function handleFile(file) {
             if (file.type !== 'image/svg+xml' && !file.name.endsWith('.svg')) {
                 alert('Please select a valid SVG file');
                 return;
             }
-
             const reader = new FileReader();
             reader.onload = (e) => {
                 originalSvgContent = e.target.result;
-                
-                // Parse SVG to remove width, height, and image tags
                 const parser = new DOMParser();
                 const svgDoc = parser.parseFromString(originalSvgContent, 'image/svg+xml');
                 const svgElement = svgDoc.querySelector('svg');
-                
                 if (svgElement) {
-                    // Remove width and height attributes
                     svgElement.removeAttribute('width');
                     svgElement.removeAttribute('height');
-                    
-                    // Remove all <image> tags
-                    const imageTags = svgElement.querySelectorAll('image');
-                    imageTags.forEach(img => img.remove());
-                    
-                    // Serialize back to string
+                    svgElement.querySelectorAll('image').forEach(img => img.remove());
                     const serializer = new XMLSerializer();
                     originalSvgContent = serializer.serializeToString(svgDoc);
                 }
-                
                 modifiedSvgContent = originalSvgContent;
+                colorMap = {};
+                extractColors();
                 displaySvg();
                 previewSection.classList.add('active');
+                // Auto-open palette
+                openPalette();
             };
             reader.readAsText(file);
         }
 
+        // ── Color extraction ──
+        function extractColors() {
+            const parser = new DOMParser();
+            const svgDoc = parser.parseFromString(originalSvgContent, 'image/svg+xml');
+            const colorSet = new Set();
+
+            const colorAttrs = ['fill', 'stroke', 'stop-color', 'color', 'flood-color', 'lighting-color'];
+            const allEls = svgDoc.querySelectorAll('*');
+
+            allEls.forEach(el => {
+                // Attributes
+                colorAttrs.forEach(attr => {
+                    const val = el.getAttribute(attr);
+                    if (val) addColorToSet(val, colorSet);
+                });
+                // Inline style
+                const style = el.getAttribute('style');
+                if (style) {
+                    colorAttrs.forEach(attr => {
+                        const regex = new RegExp(attr + '\\s*:\\s*([^;]+)', 'i');
+                        const m = style.match(regex);
+                        if (m) addColorToSet(m[1].trim(), colorSet);
+                    });
+                }
+            });
+
+            // Also scan raw text for hex colors not caught by attributes
+            const hexMatches = originalSvgContent.match(/#[0-9a-fA-F]{3,8}\b/g) || [];
+            hexMatches.forEach(h => addColorToSet(h, colorSet));
+
+            originalColors = [...colorSet].filter(c => c !== 'none' && c !== 'transparent' && c !== 'inherit' && c !== 'currentColor');
+            // Initialize colorMap with identity
+            originalColors.forEach(c => { if (!colorMap[c]) colorMap[c] = c; });
+            renderSwatches();
+        }
+
+        function addColorToSet(val, set) {
+            val = val.trim().toLowerCase();
+            if (!val || val === 'none' || val === 'transparent' || val === 'inherit' || val === 'currentcolor') return;
+            // Normalize shorthand hex
+            const short = val.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i);
+            if (short) val = `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`;
+            set.add(val);
+        }
+
+        // ── Palette toggle ──
+        function togglePalette() {
+            const body = document.getElementById('paletteBody');
+            const chevron = document.getElementById('paletteChevron');
+            body.classList.toggle('open');
+            chevron.classList.toggle('open');
+        }
+        function openPalette() {
+            document.getElementById('paletteBody').classList.add('open');
+            document.getElementById('paletteChevron').classList.add('open');
+        }
+
+        // ── Render swatches ──
+        function renderSwatches() {
+            const container = document.getElementById('colorSwatches');
+            container.innerHTML = '';
+            document.getElementById('colorCountBadge').textContent = originalColors.length;
+
+            originalColors.forEach(origColor => {
+                const currentColor = colorMap[origColor] || origColor;
+                const item = document.createElement('div');
+                item.className = 'swatch-item';
+                item.title = `Original: ${origColor}\nCurrent: ${currentColor}\nClick to change`;
+
+                const box = document.createElement('div');
+                box.className = 'swatch-box';
+                box.style.backgroundColor = currentColor;
+                box.id = `swatch-box-${CSS.escape(origColor)}`;
+
+                // Pencil icon
+                const editIcon = document.createElement('div');
+                editIcon.className = 'swatch-edit-icon';
+                editIcon.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+                box.appendChild(editIcon);
+
+                // Hidden color input
+                const input = document.createElement('input');
+                input.type = 'color';
+                input.className = 'swatch-input';
+                // Try to get a valid hex for the color picker
+                input.value = toHexForPicker(currentColor);
+                input.setAttribute('data-orig', origColor);
+
+                input.addEventListener('input', (e) => {
+                    const newColor = e.target.value.toLowerCase();
+                    box.style.backgroundColor = newColor;
+                    label.textContent = newColor;
+                });
+
+                input.addEventListener('change', (e) => {
+                    const newColor = e.target.value.toLowerCase();
+                    applyColorChange(origColor, newColor);
+                });
+
+                // Click box → open picker
+                box.addEventListener('click', () => input.click());
+
+                const label = document.createElement('div');
+                label.className = 'swatch-label';
+                label.textContent = currentColor.length > 9 ? currentColor.slice(0, 9) + '…' : currentColor;
+
+                item.appendChild(box);
+                item.appendChild(input);
+                item.appendChild(label);
+                container.appendChild(item);
+            });
+        }
+
+        function toHexForPicker(color) {
+            // If already a 6-digit hex, return it
+            if (/^#[0-9a-f]{6}$/i.test(color)) return color;
+            // Short hex → expand
+            const short = color.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i);
+            if (short) return `#${short[1]}${short[1]}${short[2]}${short[2]}${short[3]}${short[3]}`;
+            // Named color via canvas
+            try {
+                const ctx = document.createElement('canvas').getContext('2d');
+                ctx.fillStyle = color;
+                const hex = ctx.fillStyle;
+                if (/^#[0-9a-f]{6}$/.test(hex)) return hex;
+            } catch(e) {}
+            return '#000000';
+        }
+
+        // ── Apply color change ──
+        function applyColorChange(origColor, newColor) {
+            colorMap[origColor] = newColor;
+            rebuildModifiedSvg();
+            renderSwatches();
+            renderChangeLog();
+            displayModified();
+        }
+
+        function resetAllColors() {
+            originalColors.forEach(c => { colorMap[c] = c; });
+            modifiedSvgContent = originalSvgContent;
+            renderSwatches();
+            renderChangeLog();
+            displayModified();
+        }
+
+        // ── Rebuild modified SVG by applying all colorMap entries to original ──
+        function rebuildModifiedSvg() {
+            let result = originalSvgContent;
+            // Sort by length descending to avoid partial replacements
+            const sortedColors = [...originalColors].sort((a, b) => b.length - a.length);
+            sortedColors.forEach(orig => {
+                const replacement = colorMap[orig] || orig;
+                if (replacement === orig) return;
+                // Escape for regex
+                const escaped = orig.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const regex = new RegExp(escaped, 'gi');
+                result = result.replace(regex, replacement);
+                // Also handle shorthand hex
+                const short = orig.match(/^#([0-9a-f])\1([0-9a-f])\2([0-9a-f])\3$/i);
+                if (short) {
+                    const shortHex = `#${short[1]}${short[2]}${short[3]}`;
+                    const escapedShort = shortHex.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    result = result.replace(new RegExp(escapedShort, 'gi'), replacement);
+                }
+            });
+            modifiedSvgContent = result;
+        }
+
+        // ── Change log ──
+        function renderChangeLog() {
+            const log = document.getElementById('changeLog');
+            const list = document.getElementById('changeLogList');
+            const changes = originalColors.filter(c => colorMap[c] && colorMap[c] !== c);
+            if (changes.length === 0) {
+                log.classList.remove('has-changes');
+                return;
+            }
+            log.classList.add('has-changes');
+            list.innerHTML = '';
+            changes.forEach(orig => {
+                const newColor = colorMap[orig];
+                const entry = document.createElement('div');
+                entry.className = 'change-entry';
+                entry.innerHTML = `
+                    <div class="change-dot" style="background:${orig}"></div>
+                    <span class="change-arrow">→</span>
+                    <div class="change-dot" style="background:${newColor}"></div>
+                    <span>${newColor}</span>
+                `;
+                list.appendChild(entry);
+            });
+        }
+
+        // ── Display ──
         function displaySvg() {
             originalSvgContainer.innerHTML = originalSvgContent;
             modifiedSvgContainer.innerHTML = modifiedSvgContent;
         }
 
-        function applyColorReplacement() {
-            const fromColorValue = fromColorText.value.toLowerCase();
-            const toColorValue = toColorText.value.toLowerCase();
-
-            // Replace color in the SVG content
-            // This will replace all occurrences of the color in various formats
-            modifiedSvgContent = originalSvgContent;
-            
-            // Replace hex color (case insensitive)
-            const hexRegex = new RegExp(fromColorValue, 'gi');
-            modifiedSvgContent = modifiedSvgContent.replace(hexRegex, toColorValue);
-
-            // Also try to replace short hex format if applicable
-            if (fromColorValue.length === 7) {
-                const shortHex = fromColorValue.replace(/^#([0-9a-f])\1([0-9a-f])\2([0-9a-f])\3$/i, '#$1$2$3');
-                if (shortHex !== fromColorValue) {
-                    const shortHexRegex = new RegExp(shortHex, 'gi');
-                    modifiedSvgContent = modifiedSvgContent.replace(shortHexRegex, toColorValue);
-                }
-            }
-
-            displaySvg();
+        function displayModified() {
+            modifiedSvgContainer.innerHTML = modifiedSvgContent;
         }
 
+        // ── Download ──
         function downloadSvg() {
             const blob = new Blob([modifiedSvgContent], { type: 'image/svg+xml' });
             const url = URL.createObjectURL(blob);
